@@ -20,6 +20,12 @@
             >
               Create Job
             </router-link>
+            <router-link 
+              to="/add-candidate" 
+              class="text-neutral-600 hover:text-neutral-900 transition-colors"
+            >
+              Add Candidate
+            </router-link>
             
             <!-- Logout button -->
             <button
