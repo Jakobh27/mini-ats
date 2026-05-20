@@ -27,6 +27,15 @@
               Add Candidate
             </router-link>
             
+            <!-- Admin Panel link (only show if admin) -->
+            <router-link 
+              v-if="isAdmin"
+              to="/admin" 
+              class="text-neutral-600 hover:text-neutral-900 transition-colors font-medium"
+            >
+              Admin Panel
+            </router-link>
+            
             <!-- Logout button -->
             <button
               @click="handleLogout"
@@ -62,16 +71,25 @@ import { supabase } from './lib/supabaseClient'
 
 const router = useRouter()
 const isLoggedIn = ref(false)
+const isAdmin = ref(false)
 
 onMounted(() => {
   // Check initial auth state
   supabase.auth.getSession().then(({ data: { session } }) => {
     isLoggedIn.value = !!session
+    if (session) {
+      checkAdminRole()
+    }
   })
 
   // Listen for auth changes
   const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
     isLoggedIn.value = !!session
+    if (session) {
+      checkAdminRole()
+    } else {
+      isAdmin.value = false
+    }
   })
 
   // Cleanup subscription on unmount
@@ -80,8 +98,37 @@ onMounted(() => {
   }
 })
 
+const checkAdminRole = async () => {
+  try {
+    const { data, error } = await supabase.auth.getUser()
+    
+    if (error || !data.user) {
+      isAdmin.value = false
+      return
+    }
+
+    const { data: profile, error: profileError } = await supabase
+      .from('profiles')
+      .select('role')
+      .eq('id', data.user.id)
+      .single()
+
+    if (profileError) {
+      console.error('Error fetching profile:', profileError)
+      isAdmin.value = false
+      return
+    }
+
+    isAdmin.value = profile?.role === 'admin'
+  } catch (err) {
+    console.error('Error checking admin role:', err)
+    isAdmin.value = false
+  }
+}
+
 const handleLogout = async () => {
   await supabase.auth.signOut()
+  isAdmin.value = false
   router.push('/login')
 }
 </script>
