@@ -92,9 +92,20 @@ const isLoading = ref(false)
 
 onMounted(async () => {
   try {
+    // Get current user
+    const { data: userData, error: userError } = await supabase.auth.getUser()
+    if (userError || !userData.user) {
+      error.value = 'Could not retrieve user information'
+      return
+    }
+
+    const userId = userData.user.id
+
+    // Load only the current user's jobs
     const { data, error: fetchError } = await supabase
       .from('jobs')
       .select('id, title')
+      .eq('customer_id', userId)
 
     if (fetchError) {
       error.value = 'Could not load jobs'

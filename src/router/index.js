@@ -1,15 +1,42 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import { supabase } from '../lib/supabaseClient'
 import LoginView from '../views/LoginView.vue'
-import DashboardView from '../views/DashboardView.vue'
+import AdminDashboardView from '../views/AdminDashboardView.vue'
+import CustomerDashboardView from '../views/CustomerDashboardView.vue'
 import CreateJobView from '../views/CreateJobView.vue'
 import AddCandidateView from '../views/AddCandidateView.vue'
 import AdminView from '../views/AdminView.vue'
 
+const DashboardWrapper = {
+  name: 'DashboardWrapper',
+  components: { AdminDashboardView, CustomerDashboardView },
+  template: `<AdminDashboardView v-if="userRole === 'admin'" /><CustomerDashboardView v-else />`,
+  data() {
+    return {
+      userRole: null
+    }
+  },
+  async mounted() {
+    try {
+      const { data: { user } } = await supabase.auth.getUser()
+      if (user) {
+        const { data: profileData } = await supabase
+          .from('profiles')
+          .select('role')
+          .eq('id', user.id)
+          .single()
+        this.userRole = profileData?.role
+      }
+    } catch (err) {
+      console.error('Error loading user role:', err)
+    }
+  }
+}
+
 const routes = [
   {
     path: '/',
-    component: DashboardView
+    component: DashboardWrapper
   },
   {
     path: '/login',

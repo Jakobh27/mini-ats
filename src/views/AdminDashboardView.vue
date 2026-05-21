@@ -36,8 +36,8 @@
           </select>
         </div>
 
-        <!-- Company filter (only for admins) -->
-        <div v-if="userRole === 'admin'">
+        <!-- Company filter -->
+        <div>
           <label for="companyFilter" class="block text-sm font-medium text-neutral-900 mb-2">
             Filter by company
           </label>
@@ -77,7 +77,7 @@
                 <p class="text-neutral-600">
                   <span class="font-medium">Job:</span> {{ getJobTitle(candidate.job_id) }}
                 </p>
-                <p v-if="userRole === 'admin'" class="text-neutral-600">
+                <p class="text-neutral-600">
                   <span class="font-medium">Company:</span> {{ getCompanyName(candidate.customer_id) }}
                 </p>
                 <a
@@ -115,7 +115,7 @@
                 <p class="text-neutral-600">
                   <span class="font-medium">Job:</span> {{ getJobTitle(candidate.job_id) }}
                 </p>
-                <p v-if="userRole === 'admin'" class="text-neutral-600">
+                <p class="text-neutral-600">
                   <span class="font-medium">Company:</span> {{ getCompanyName(candidate.customer_id) }}
                 </p>
                 <a
@@ -153,7 +153,7 @@
                 <p class="text-neutral-600">
                   <span class="font-medium">Job:</span> {{ getJobTitle(candidate.job_id) }}
                 </p>
-                <p v-if="userRole === 'admin'" class="text-neutral-600">
+                <p class="text-neutral-600">
                   <span class="font-medium">Company:</span> {{ getCompanyName(candidate.customer_id) }}
                 </p>
                 <a
@@ -192,7 +192,6 @@ const searchQuery = ref('')
 const selectedJobId = ref('')
 const selectedCompanyId = ref('')
 const isLoading = ref(true)
-const userRole = ref(null)
 const userId = ref(null)
 
 onMounted(async () => {
@@ -207,51 +206,28 @@ onMounted(async () => {
 
     userId.value = userData.user.id
 
-    // Get user role from profiles
-    const { data: profileData, error: profileError } = await supabase
+    // Load all companies
+    const { data: companiesData, error: companiesError } = await supabase
       .from('profiles')
-      .select('role')
-      .eq('id', userData.user.id)
-      .single()
+      .select('id, company_name')
+      .eq('role', 'customer')
 
-    if (profileError) {
-      console.error('Could not retrieve user role')
-      isLoading.value = false
-      return
-    }
+    if (companiesError) throw companiesError
+    companies.value = companiesData || []
 
-    userRole.value = profileData.role
+    // Build jobs query - load all jobs for admin
+    const { data: jobsData, error: jobsError } = await supabase
+      .from('jobs')
+      .select('id, title, customer_id')
 
-    // Load all companies if admin
-    if (userRole.value === 'admin') {
-      const { data: companiesData, error: companiesError } = await supabase
-        .from('profiles')
-        .select('id, company_name')
-        .eq('role', 'customer')
-
-      if (companiesError) throw companiesError
-      companies.value = companiesData || []
-    }
-
-    // Build jobs query
-    let jobsQuery = supabase.from('jobs').select('id, title, customer_id')
-    if (userRole.value === 'customer') {
-      jobsQuery = jobsQuery.eq('customer_id', userId.value)
-    }
-
-    const { data: jobsData, error: jobsError } = await jobsQuery
     if (jobsError) throw jobsError
     jobs.value = jobsData || []
 
-    // Build candidates query
-    let candidatesQuery = supabase
+    // Build candidates query - load all candidates for admin
+    const { data: candidatesData, error: candidatesError } = await supabase
       .from('candidates')
       .select('id, name, linkedin_url, job_id, stage, customer_id')
-    if (userRole.value === 'customer') {
-      candidatesQuery = candidatesQuery.eq('customer_id', userId.value)
-    }
 
-    const { data: candidatesData, error: candidatesError } = await candidatesQuery
     if (candidatesError) throw candidatesError
     allCandidates.value = candidatesData || []
 

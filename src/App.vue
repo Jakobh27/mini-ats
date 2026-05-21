@@ -14,12 +14,14 @@
             >
               Dashboard
             </router-link>
+            
             <router-link 
               to="/create-job" 
               class="text-neutral-600 hover:text-neutral-900 transition-colors"
             >
               Create Job
             </router-link>
+
             <router-link 
               to="/add-candidate" 
               class="text-neutral-600 hover:text-neutral-900 transition-colors"

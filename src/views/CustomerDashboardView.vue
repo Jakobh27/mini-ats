@@ -4,7 +4,7 @@
 
     <!-- Filters -->
     <div class="bg-white rounded-lg shadow-sm border border-neutral-200 p-6 mb-8">
-      <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
         <!-- Search input -->
         <div>
           <label for="search" class="block text-sm font-medium text-neutral-900 mb-2">
@@ -35,23 +35,6 @@
             </option>
           </select>
         </div>
-
-        <!-- Company filter (only for admins) -->
-        <div v-if="userRole === 'admin'">
-          <label for="companyFilter" class="block text-sm font-medium text-neutral-900 mb-2">
-            Filter by company
-          </label>
-          <select
-            id="companyFilter"
-            v-model="selectedCompanyId"
-            class="w-full px-4 py-2 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-transparent bg-white"
-          >
-            <option value="">All companies</option>
-            <option v-for="company in companies" :key="company.id" :value="company.id">
-              {{ company.company_name }}
-            </option>
-          </select>
-        </div>
       </div>
     </div>
 
@@ -76,9 +59,6 @@
               <div class="space-y-2 text-sm">
                 <p class="text-neutral-600">
                   <span class="font-medium">Job:</span> {{ getJobTitle(candidate.job_id) }}
-                </p>
-                <p v-if="userRole === 'admin'" class="text-neutral-600">
-                  <span class="font-medium">Company:</span> {{ getCompanyName(candidate.customer_id) }}
                 </p>
                 <a
                   v-if="candidate.linkedin_url"
@@ -115,9 +95,6 @@
                 <p class="text-neutral-600">
                   <span class="font-medium">Job:</span> {{ getJobTitle(candidate.job_id) }}
                 </p>
-                <p v-if="userRole === 'admin'" class="text-neutral-600">
-                  <span class="font-medium">Company:</span> {{ getCompanyName(candidate.customer_id) }}
-                </p>
                 <a
                   v-if="candidate.linkedin_url"
                   :href="candidate.linkedin_url"
@@ -153,9 +130,6 @@
                 <p class="text-neutral-600">
                   <span class="font-medium">Job:</span> {{ getJobTitle(candidate.job_id) }}
                 </p>
-                <p v-if="userRole === 'admin'" class="text-neutral-600">
-                  <span class="font-medium">Company:</span> {{ getCompanyName(candidate.customer_id) }}
-                </p>
                 <a
                   v-if="candidate.linkedin_url"
                   :href="candidate.linkedin_url"
@@ -183,16 +157,13 @@ import draggable from 'vuedraggable'
 import { supabase } from '../lib/supabaseClient'
 
 const jobs = ref([])
-const companies = ref([])
 const allCandidates = ref([])
 const newCandidatesList = ref([])
 const interviewCandidatesList = ref([])
 const hiredCandidatesList = ref([])
 const searchQuery = ref('')
 const selectedJobId = ref('')
-const selectedCompanyId = ref('')
 const isLoading = ref(true)
-const userRole = ref(null)
 const userId = ref(null)
 
 onMounted(async () => {
@@ -207,51 +178,21 @@ onMounted(async () => {
 
     userId.value = userData.user.id
 
-    // Get user role from profiles
-    const { data: profileData, error: profileError } = await supabase
-      .from('profiles')
-      .select('role')
-      .eq('id', userData.user.id)
-      .single()
+    // Build jobs query - only customer's jobs
+    const { data: jobsData, error: jobsError } = await supabase
+      .from('jobs')
+      .select('id, title')
+      .eq('customer_id', userId.value)
 
-    if (profileError) {
-      console.error('Could not retrieve user role')
-      isLoading.value = false
-      return
-    }
-
-    userRole.value = profileData.role
-
-    // Load all companies if admin
-    if (userRole.value === 'admin') {
-      const { data: companiesData, error: companiesError } = await supabase
-        .from('profiles')
-        .select('id, company_name')
-        .eq('role', 'customer')
-
-      if (companiesError) throw companiesError
-      companies.value = companiesData || []
-    }
-
-    // Build jobs query
-    let jobsQuery = supabase.from('jobs').select('id, title, customer_id')
-    if (userRole.value === 'customer') {
-      jobsQuery = jobsQuery.eq('customer_id', userId.value)
-    }
-
-    const { data: jobsData, error: jobsError } = await jobsQuery
     if (jobsError) throw jobsError
     jobs.value = jobsData || []
 
-    // Build candidates query
-    let candidatesQuery = supabase
+    // Build candidates query - only customer's candidates
+    const { data: candidatesData, error: candidatesError } = await supabase
       .from('candidates')
-      .select('id, name, linkedin_url, job_id, stage, customer_id')
-    if (userRole.value === 'customer') {
-      candidatesQuery = candidatesQuery.eq('customer_id', userId.value)
-    }
+      .select('id, name, linkedin_url, job_id, stage')
+      .eq('customer_id', userId.value)
 
-    const { data: candidatesData, error: candidatesError } = await candidatesQuery
     if (candidatesError) throw candidatesError
     allCandidates.value = candidatesData || []
 
@@ -265,7 +206,7 @@ onMounted(async () => {
 })
 
 // Watch for filter changes
-watch([searchQuery, selectedJobId, selectedCompanyId], () => {
+watch([searchQuery, selectedJobId], () => {
   filterAndSortCandidates()
 })
 
@@ -273,8 +214,7 @@ const filterAndSortCandidates = () => {
   const filtered = allCandidates.value.filter((candidate) => {
     const matchesSearch = candidate.name.toLowerCase().includes(searchQuery.value.toLowerCase())
     const matchesJob = !selectedJobId.value || candidate.job_id === selectedJobId.value
-    const matchesCompany = !selectedCompanyId.value || candidate.customer_id === selectedCompanyId.value
-    return matchesSearch && matchesJob && matchesCompany
+    return matchesSearch && matchesJob
   })
 
   newCandidatesList.value = filtered.filter((c) => c.stage === 'Ny')
@@ -285,11 +225,6 @@ const filterAndSortCandidates = () => {
 const getJobTitle = (jobId) => {
   const job = jobs.value.find((j) => j.id === jobId)
   return job ? job.title : 'Unknown job'
-}
-
-const getCompanyName = (customerId) => {
-  const company = companies.value.find((c) => c.id === customerId)
-  return company ? company.company_name : 'Unknown company'
 }
 
 const onCandidateMoved = async (targetStage) => {
