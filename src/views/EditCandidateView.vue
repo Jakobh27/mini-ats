@@ -1,10 +1,21 @@
 <template>
   <div class="max-w-2xl mx-auto">
-    <h1 class="text-3xl font-bold text-neutral-900 mb-2">Add a new candidate</h1>
-    <p class="text-neutral-600 mb-8">Add candidates to your job openings</p>
+    <h1 class="text-3xl font-bold text-neutral-900 mb-2">Edit candidate</h1>
+    <p class="text-neutral-600 mb-8">Update candidate information and CV</p>
 
-    <div class="bg-white rounded-lg shadow-sm border border-neutral-200 p-8">
-      <form @submit.prevent="handleAddCandidate" class="space-y-6">
+    <div v-if="loading" class="text-center py-12">
+      <p class="text-neutral-600">Loading candidate...</p>
+    </div>
+
+    <div v-else-if="!candidate" class="text-center py-12">
+      <p class="text-red-600">Candidate not found or access denied</p>
+      <router-link to="/" class="text-violet-600 hover:text-violet-700 mt-4 inline-block">
+        Back to dashboard
+      </router-link>
+    </div>
+
+    <div v-else class="bg-white rounded-lg shadow-sm border border-neutral-200 p-8">
+      <form @submit.prevent="handleUpdateCandidate" class="space-y-6">
         <!-- Name field -->
         <div>
           <label for="name" class="block text-sm font-medium text-neutral-900 mb-2">
@@ -12,7 +23,7 @@
           </label>
           <input
             id="name"
-            v-model="name"
+            v-model="form.name"
             type="text"
             required
             class="w-full px-4 py-2 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-transparent"
@@ -27,7 +38,7 @@
           </label>
           <input
             id="email"
-            v-model="email"
+            v-model="form.email"
             type="email"
             required
             class="w-full px-4 py-2 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-transparent"
@@ -42,7 +53,7 @@
           </label>
           <input
             id="phone"
-            v-model="phone"
+            v-model="form.phone"
             type="tel"
             required
             class="w-full px-4 py-2 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-transparent"
@@ -57,7 +68,7 @@
           </label>
           <input
             id="linkedinUrl"
-            v-model="linkedinUrl"
+            v-model="form.linkedinUrl"
             type="url"
             required
             class="w-full px-4 py-2 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-transparent"
@@ -65,28 +76,23 @@
           />
         </div>
 
-        <!-- Job dropdown -->
-        <div>
-          <label for="jobId" class="block text-sm font-medium text-neutral-900 mb-2">
-            Job
-          </label>
-          <select
-            id="jobId"
-            v-model="jobId"
-            required
-            class="w-full px-4 py-2 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-transparent bg-white"
+        <!-- Current CV section -->
+        <div v-if="candidate.resume_url" class="bg-neutral-50 border border-neutral-200 rounded-lg p-4">
+          <p class="text-sm font-medium text-neutral-900 mb-2">Current CV</p>
+          <a
+            :href="candidate.resume_url"
+            target="_blank"
+            rel="noopener noreferrer"
+            class="text-violet-600 hover:text-violet-700 text-sm font-medium"
           >
-            <option value="" disabled>Select a job</option>
-            <option v-for="job in jobs" :key="job.id" :value="job.id">
-              {{ job.title }}
-            </option>
-          </select>
+            Download current resume
+          </a>
         </div>
 
         <!-- CV file upload -->
         <div>
           <label for="cvFile" class="block text-sm font-medium text-neutral-900 mb-2">
-            CV (PDF)
+            Upload New CV (PDF) - Optional
           </label>
           <div class="flex items-center gap-2">
             <input
@@ -107,9 +113,9 @@
             <span v-if="selectedFile" class="text-sm text-neutral-600">
               {{ selectedFile.name }} ({{ formatFileSize(selectedFile.size) }})
             </span>
-            <span v-else class="text-sm text-neutral-500">No file selected</span>
+            <span v-else class="text-sm text-neutral-500">No new file selected</span>
           </div>
-          <p class="text-xs text-neutral-500 mt-1">Max 10MB, PDF format</p>
+          <p class="text-xs text-neutral-500 mt-1">Leave blank to keep current CV. Max 10MB, PDF format</p>
         </div>
 
         <!-- Upload progress bar -->
@@ -130,63 +136,95 @@
           <p class="text-red-700 text-sm">{{ error }}</p>
         </div>
 
-        <!-- Submit button -->
-        <button
-          type="submit"
-          :disabled="isLoading || jobs.length === 0"
-          class="w-full bg-violet-600 hover:bg-violet-700 disabled:bg-neutral-400 text-white font-medium py-2 rounded-lg transition-colors"
-        >
-          {{ isLoading ? 'Adding candidate...' : 'Add candidate' }}
-        </button>
+        <!-- Buttons -->
+        <div class="flex gap-2 pt-4">
+          <button
+            type="submit"
+            :disabled="isLoading"
+            class="flex-1 bg-violet-600 hover:bg-violet-700 disabled:bg-neutral-400 text-white font-medium py-2 rounded-lg transition-colors"
+          >
+            {{ isLoading ? 'Updating...' : 'Update candidate' }}
+          </button>
+          <router-link
+            :to="`/candidate/${candidate.id}`"
+            class="flex-1 px-4 py-2 border border-neutral-300 rounded-lg hover:bg-neutral-50 text-neutral-900 font-medium transition-colors text-center"
+          >
+            Cancel
+          </router-link>
+        </div>
       </form>
     </div>
   </div>
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
-import { useRouter } from 'vue-router'
+import { ref, reactive, onMounted } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
 import { supabase } from '../lib/supabaseClient'
+import { useUserContext } from '../composables/useUserContext'
 
+const route = useRoute()
 const router = useRouter()
-const name = ref('')
-const email = ref('')
-const phone = ref('')
-const linkedinUrl = ref('')
-const jobId = ref('')
-const jobs = ref([])
+const { userId, isAdmin } = useUserContext()
+
+const candidate = ref(null)
+const loading = ref(true)
+const isLoading = ref(false)
 const error = ref('')
 const successMessage = ref('')
-const isLoading = ref(false)
 const selectedFile = ref(null)
 const fileInput = ref(null)
 const uploadProgress = ref(0)
 
+const form = reactive({
+  name: '',
+  email: '',
+  phone: '',
+  linkedinUrl: ''
+})
+
 onMounted(async () => {
   try {
-    // Get current user
-    const { data: userData, error: userError } = await supabase.auth.getUser()
-    if (userError || !userData.user) {
-      error.value = 'Could not retrieve user information'
-      return
-    }
+    const candidateId = route.params.id
 
-    const userId = userData.user.id
+    // Check user context
+    await new Promise(resolve => {
+      const checkUser = setInterval(() => {
+        if (userId.value) {
+          clearInterval(checkUser)
+          resolve()
+        }
+      }, 50)
+      setTimeout(() => clearInterval(checkUser), 5000)
+    })
 
-    // Load only the current user's jobs
+    // Fetch candidate
     const { data, error: fetchError } = await supabase
-      .from('jobs')
-      .select('id, title')
-      .eq('customer_id', userId)
+      .from('candidates')
+      .select('*')
+      .eq('id', candidateId)
+      .single()
 
-    if (fetchError) {
-      error.value = 'Could not load jobs'
+    if (fetchError || !data) {
+      loading.value = false
       return
     }
 
-    jobs.value = data || []
+    // Check access: user must be admin or the candidate's customer
+    if (!isAdmin.value && data.customer_id !== userId.value) {
+      loading.value = false
+      return
+    }
+
+    candidate.value = data
+    form.name = data.name
+    form.email = data.email
+    form.phone = data.phone
+    form.linkedinUrl = data.linkedin_url
+    loading.value = false
   } catch (err) {
-    error.value = 'An unexpected error occurred'
+    console.error('Error loading candidate:', err)
+    loading.value = false
   }
 })
 
@@ -222,7 +260,7 @@ const handleFileChange = (event) => {
 
 const uploadCVToStorage = async (userId) => {
   if (!selectedFile.value) {
-    return null // No CV provided, that's okay
+    return null // No new CV provided
   }
 
   try {
@@ -261,68 +299,46 @@ const uploadCVToStorage = async (userId) => {
   }
 }
 
-const handleAddCandidate = async () => {
+const handleUpdateCandidate = async () => {
   error.value = ''
   successMessage.value = ''
   isLoading.value = true
 
   try {
-    // Get current user
-    const { data, error: userError } = await supabase.auth.getUser()
-
-    if (userError || !data.user) {
-      error.value = 'Could not retrieve user information'
-      isLoading.value = false
-      return
-    }
-
-    const userId = data.user.id
-
-    // Upload CV if provided
-    let resumeUrl = null
+    // Upload new CV if provided
+    let resumeUrl = candidate.value.resume_url
     if (selectedFile.value) {
-      resumeUrl = await uploadCVToStorage(userId)
+      resumeUrl = await uploadCVToStorage(userId.value)
       if (!resumeUrl) {
         isLoading.value = false
         return
       }
     }
 
-    // Insert candidate into database
-    const { error: insertError } = await supabase
+    // Update candidate in database
+    const { error: updateError } = await supabase
       .from('candidates')
-      .insert([
-        {
-          name: name.value,
-          email: email.value,
-          phone: phone.value,
-          linkedin_url: linkedinUrl.value,
-          job_id: jobId.value,
-          customer_id: userId,
-          stage: 'Ny',
-          resume_url: resumeUrl
-        }
-      ])
+      .update({
+        name: form.name,
+        email: form.email,
+        phone: form.phone,
+        linkedin_url: form.linkedinUrl,
+        resume_url: resumeUrl
+      })
+      .eq('id', candidate.value.id)
 
-    if (insertError) {
-      error.value = insertError.message
+    if (updateError) {
+      error.value = updateError.message
       isLoading.value = false
       return
     }
 
-    // Success - show message and reset form
-    successMessage.value = 'Candidate has been added!'
-    name.value = ''
-    email.value = ''
-    phone.value = ''
-    linkedinUrl.value = ''
-    jobId.value = ''
-    selectedFile.value = null
+    successMessage.value = 'Candidate updated successfully!'
     isLoading.value = false
 
-    // Redirect to dashboard after 1 second
+    // Redirect to candidate detail view after 1 second
     setTimeout(() => {
-      router.push('/')
+      router.push(`/candidate/${candidate.value.id}`)
     }, 1000)
   } catch (err) {
     error.value = 'An unexpected error occurred'

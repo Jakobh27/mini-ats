@@ -6,6 +6,8 @@ import CustomerDashboardView from '../views/CustomerDashboardView.vue'
 import CreateJobView from '../views/CreateJobView.vue'
 import AddCandidateView from '../views/AddCandidateView.vue'
 import AdminView from '../views/AdminView.vue'
+import CandidateDetailView from '../views/CandidateDetailView.vue'
+import EditCandidateView from '../views/EditCandidateView.vue'
 
 const DashboardWrapper = {
   name: 'DashboardWrapper',
@@ -53,6 +55,14 @@ const routes = [
   {
     path: '/admin',
     component: AdminView
+  },
+  {
+    path: '/candidate/:id',
+    component: CandidateDetailView
+  },
+  {
+    path: '/candidate/:id/edit',
+    component: EditCandidateView
   }
 ]
 
@@ -62,9 +72,21 @@ const router = createRouter({
 })
 
 router.beforeEach(async (to, from, next) => {
-  const protectedRoutes = ['/', '/create-job', '/add-candidate', '/admin']
+  const protectedRoutes = ['/', '/create-job', '/add-candidate', '/admin', '/candidate/:id', '/candidate/:id/edit']
   
-  if (protectedRoutes.includes(to.path)) {
+  const isProtectedRoute = protectedRoutes.some(route => {
+    // Check if the current path matches the protected route (handle dynamic segments)
+    const routeParts = route.split('/')
+    const pathParts = to.path.split('/')
+    
+    if (routeParts.length !== pathParts.length) return false
+    
+    return routeParts.every((part, index) => {
+      return part.startsWith(':') || part === pathParts[index]
+    })
+  })
+  
+  if (isProtectedRoute) {
     const { data: { session } } = await supabase.auth.getSession()
     
     if (!session) {
