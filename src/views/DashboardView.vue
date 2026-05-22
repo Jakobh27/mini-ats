@@ -71,25 +71,22 @@
           @end="() => onCandidateMoved('Ny')"
         >
           <template #item="{ element: candidate }">
-            <div class="bg-white rounded-lg p-4 shadow-sm border border-neutral-200 cursor-move hover:shadow-md transition-shadow">
-              <h3 class="font-medium text-neutral-900 mb-2">{{ candidate.name }}</h3>
-              <div class="space-y-2 text-sm">
-                <p class="text-neutral-600">
-                  <span class="font-medium">Job:</span> {{ getJobTitle(candidate.job_id) }}
-                </p>
-                <p v-if="userRole === 'admin'" class="text-neutral-600">
-                  <span class="font-medium">Company:</span> {{ getCompanyName(candidate.customer_id) }}
-                </p>
-                <a
-                  v-if="candidate.linkedin_url"
-                  :href="candidate.linkedin_url"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  class="inline-block text-violet-600 hover:text-violet-700 hover:underline"
-                >
-                  LinkedIn ↗
-                </a>
-              </div>
+            <div class="bg-white rounded-lg shadow-sm border border-neutral-200 hover:shadow-md transition-shadow group">
+              <router-link
+                :to="`/candidate/${candidate.id}`"
+                class="block p-4"
+              >
+                <h3 class="font-medium text-neutral-900 mb-2 group-hover:text-violet-600">{{ candidate.name }}</h3>
+                <div class="space-y-2 text-sm">
+                  <p class="text-neutral-600">
+                    <span class="font-medium">Job:</span> {{ getJobTitle(candidate.job_id) }}
+                  </p>
+                  <p v-if="userRole === 'admin'" class="text-neutral-600">
+                    <span class="font-medium">Company:</span> {{ getCompanyName(candidate.customer_id) }}
+                  </p>
+                </div>
+                <p class="text-xs text-violet-600 font-medium mt-3">Click for more info →</p>
+              </router-link>
             </div>
           </template>
         </draggable>
@@ -109,25 +106,22 @@
           @end="() => onCandidateMoved('Intervju')"
         >
           <template #item="{ element: candidate }">
-            <div class="bg-white rounded-lg p-4 shadow-sm border border-neutral-200 cursor-move hover:shadow-md transition-shadow">
-              <h3 class="font-medium text-neutral-900 mb-2">{{ candidate.name }}</h3>
-              <div class="space-y-2 text-sm">
-                <p class="text-neutral-600">
-                  <span class="font-medium">Job:</span> {{ getJobTitle(candidate.job_id) }}
-                </p>
-                <p v-if="userRole === 'admin'" class="text-neutral-600">
-                  <span class="font-medium">Company:</span> {{ getCompanyName(candidate.customer_id) }}
-                </p>
-                <a
-                  v-if="candidate.linkedin_url"
-                  :href="candidate.linkedin_url"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  class="inline-block text-violet-600 hover:text-violet-700 hover:underline"
-                >
-                  LinkedIn ↗
-                </a>
-              </div>
+            <div class="bg-white rounded-lg shadow-sm border border-neutral-200 hover:shadow-md transition-shadow group">
+              <router-link
+                :to="`/candidate/${candidate.id}`"
+                class="block p-4"
+              >
+                <h3 class="font-medium text-neutral-900 mb-2 group-hover:text-violet-600">{{ candidate.name }}</h3>
+                <div class="space-y-2 text-sm">
+                  <p class="text-neutral-600">
+                    <span class="font-medium">Job:</span> {{ getJobTitle(candidate.job_id) }}
+                  </p>
+                  <p v-if="userRole === 'admin'" class="text-neutral-600">
+                    <span class="font-medium">Company:</span> {{ getCompanyName(candidate.customer_id) }}
+                  </p>
+                </div>
+                <p class="text-xs text-violet-600 font-medium mt-3">Click for more info →</p>
+              </router-link>
             </div>
           </template>
         </draggable>
@@ -147,25 +141,22 @@
           @end="() => onCandidateMoved('Anställd')"
         >
           <template #item="{ element: candidate }">
-            <div class="bg-white rounded-lg p-4 shadow-sm border border-neutral-200 cursor-move hover:shadow-md transition-shadow">
-              <h3 class="font-medium text-neutral-900 mb-2">{{ candidate.name }}</h3>
-              <div class="space-y-2 text-sm">
-                <p class="text-neutral-600">
-                  <span class="font-medium">Job:</span> {{ getJobTitle(candidate.job_id) }}
-                </p>
-                <p v-if="userRole === 'admin'" class="text-neutral-600">
-                  <span class="font-medium">Company:</span> {{ getCompanyName(candidate.customer_id) }}
-                </p>
-                <a
-                  v-if="candidate.linkedin_url"
-                  :href="candidate.linkedin_url"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  class="inline-block text-violet-600 hover:text-violet-700 hover:underline"
-                >
-                  LinkedIn ↗
-                </a>
-              </div>
+            <div class="bg-white rounded-lg shadow-sm border border-neutral-200 hover:shadow-md transition-shadow group">
+              <router-link
+                :to="`/candidate/${candidate.id}`"
+                class="block p-4"
+              >
+                <h3 class="font-medium text-neutral-900 mb-2 group-hover:text-violet-600">{{ candidate.name }}</h3>
+                <div class="space-y-2 text-sm">
+                  <p class="text-neutral-600">
+                    <span class="font-medium">Job:</span> {{ getJobTitle(candidate.job_id) }}
+                  </p>
+                  <p v-if="userRole === 'admin'" class="text-neutral-600">
+                    <span class="font-medium">Company:</span> {{ getCompanyName(candidate.customer_id) }}
+                  </p>
+                </div>
+                <p class="text-xs text-violet-600 font-medium mt-3">Click for more info →</p>
+              </router-link>
             </div>
           </template>
         </draggable>

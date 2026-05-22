@@ -24,10 +24,10 @@
           <div>
             <h1 class="text-3xl font-bold text-neutral-900">{{ candidate.name }}</h1>
             <p class="text-neutral-600 mt-2">
-              Applied for: <span class="font-medium">{{ getJobTitle() }}</span>
+              Applied for: <span class="font-medium">{{ jobTitle }}</span>
             </p>
-            <p v-if="isAdmin" class="text-neutral-600 mt-1">
-              Company: <span class="font-medium">{{ getCompanyName() }}</span>
+            <p class="text-neutral-600 mt-1">
+              Company: <span class="font-medium">{{ companyName }}</span>
             </p>
           </div>
           <div class="flex items-center gap-2">
@@ -57,6 +57,13 @@
           >
             Edit candidate
           </router-link>
+          
+          <button
+            @click="openDeleteConfirmation"
+            class="px-4 py-2 bg-red-600 hover:bg-red-700 text-white font-medium rounded-lg transition-colors"
+          >
+            Delete candidate
+          </button>
         </div>
       </div>
 
@@ -156,6 +163,39 @@
         </p>
       </div>
     </div>
+
+    <!-- Delete confirmation modal -->
+    <div v-if="showDeleteConfirmation" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+      <div class="bg-white rounded-lg shadow-lg max-w-md w-full mx-4">
+        <div class="p-6">
+          <h2 class="text-xl font-bold text-neutral-900 mb-2">Delete candidate?</h2>
+          <p class="text-neutral-600 mb-6">
+            Are you sure you want to delete <span class="font-medium">{{ candidate.name }}</span>? This action cannot be undone.
+          </p>
+
+          <div class="flex gap-3">
+            <button
+              @click="confirmDelete"
+              :disabled="isDeleting"
+              class="flex-1 px-4 py-2 bg-red-600 hover:bg-red-700 disabled:bg-red-400 text-white font-medium rounded-lg transition-colors"
+            >
+              {{ isDeleting ? 'Deleting...' : 'Delete' }}
+            </button>
+            <button
+              @click="closeDeleteConfirmation"
+              :disabled="isDeleting"
+              class="flex-1 px-4 py-2 border border-neutral-300 text-neutral-900 font-medium rounded-lg hover:bg-neutral-50 disabled:opacity-50 transition-colors"
+            >
+              Cancel
+            </button>
+          </div>
+
+          <div v-if="deleteError" class="bg-red-50 border border-red-200 rounded-lg p-3 mt-4">
+            <p class="text-red-700 text-sm">{{ deleteError }}</p>
+          </div>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -171,6 +211,11 @@ const { userId, isAdmin } = useUserContext()
 const candidate = ref(null)
 const loading = ref(true)
 const stageUpdateMessage = ref('')
+const showDeleteConfirmation = ref(false)
+const isDeleting = ref(false)
+const deleteError = ref('')
+const jobTitle = ref('Unknown job')
+const companyName = ref('Unknown company')
 
 onMounted(async () => {
   try {
@@ -206,27 +251,37 @@ onMounted(async () => {
     }
 
     candidate.value = data
+
+    // Fetch job details
+    if (data.job_id) {
+      const { data: jobData, error: jobError } = await supabase
+        .from('jobs')
+        .select('id, title, customer_id')
+        .eq('id', data.job_id)
+        .single()
+
+      if (!jobError && jobData) {
+        jobTitle.value = jobData.title
+
+        // Fetch company details using customer_id from job
+        const { data: profileData, error: profileError } = await supabase
+          .from('profiles')
+          .select('company_name')
+          .eq('id', jobData.customer_id)
+          .single()
+
+        if (!profileError && profileData) {
+          companyName.value = profileData.company_name
+        }
+      }
+    }
+
     loading.value = false
   } catch (err) {
     console.error('Error loading candidate:', err)
     loading.value = false
   }
 })
-
-const getJobTitle = () => {
-  // In a real app, you'd fetch this from the jobs table
-  // For now, we'll fetch it when rendering
-  if (candidate.value?.job_id) {
-    // This would need to be async - for now returning placeholder
-    return 'Loading job...'
-  }
-  return 'N/A'
-}
-
-const getCompanyName = () => {
-  // In a real app, you'd get this from the job's customer_id
-  return 'Loading company...'
-}
 
 const formatDate = (dateString) => {
   if (!dateString) return 'N/A'
@@ -256,6 +311,46 @@ const updateStage = async (newStage) => {
     }, 2000)
   } catch (err) {
     console.error('Error:', err)
+  }
+}
+
+const openDeleteConfirmation = () => {
+  deleteError.value = ''
+  showDeleteConfirmation.value = true
+}
+
+const closeDeleteConfirmation = () => {
+  showDeleteConfirmation.value = false
+  deleteError.value = ''
+}
+
+const confirmDelete = async () => {
+  isDeleting.value = true
+  deleteError.value = ''
+
+  try {
+    // Delete candidate from database
+    const { error: deleteErr } = await supabase
+      .from('candidates')
+      .delete()
+      .eq('id', candidate.value.id)
+
+    if (deleteErr) {
+      deleteError.value = deleteErr.message
+      isDeleting.value = false
+      return
+    }
+
+    // Success - redirect to dashboard
+    isDeleting.value = false
+    showDeleteConfirmation.value = false
+    
+    // Show success message briefly before redirecting
+    await new Promise(resolve => setTimeout(resolve, 500))
+    router.push('/')
+  } catch (err) {
+    deleteError.value = 'An unexpected error occurred'
+    isDeleting.value = false
   }
 }
 </script>
