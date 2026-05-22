@@ -2,139 +2,49 @@
   <div v-if="!isLoading" class="p-6">
     <h1 class="text-3xl font-bold text-neutral-900 mb-8">Dashboard</h1>
 
-    <!-- Filters -->
-    <div class="bg-white rounded-lg shadow-sm border border-neutral-200 p-6 mb-8">
-      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <!-- Search input -->
-        <div>
-          <label for="search" class="block text-sm font-medium text-neutral-900 mb-2">
-            Search candidates
-          </label>
-          <input
-            id="search"
-            v-model="searchQuery"
-            type="text"
-            placeholder="Search by name..."
-            class="w-full px-4 py-2 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-transparent"
-          />
-        </div>
-
-        <!-- Job filter -->
-        <div>
-          <label for="jobFilter" class="block text-sm font-medium text-neutral-900 mb-2">
-            Filter by job
-          </label>
-          <select
-            id="jobFilter"
-            v-model="selectedJobId"
-            class="w-full px-4 py-2 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-transparent bg-white"
-          >
-            <option value="">All jobs</option>
-            <option v-for="job in jobs" :key="job.id" :value="job.id">
-              {{ job.title }}
-            </option>
-          </select>
-        </div>
-      </div>
-    </div>
+    <!-- Filters Component -->
+    <FilterBar
+      :search-query="searchQuery"
+      :selected-job-id="selectedJobId"
+      :jobs="jobs"
+      :companies="[]"
+      :show-company-filter="false"
+      grid-class="grid-cols-1 md:grid-cols-2"
+      @update:search-query="searchQuery = $event"
+      @update:selected-job-id="selectedJobId = $event"
+    />
 
     <!-- Kanban board -->
     <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-      <!-- Ny column -->
-      <div class="bg-neutral-100 rounded-lg p-4 h-full">
-        <div class="mb-4 pb-3 border-b border-neutral-300">
-          <h2 class="text-xl font-bold text-black">New</h2>
-          <p class="text-sm text-neutral-600">{{ newCandidatesList.length }} candidates</p>
-        </div>
-        <draggable
-          v-model="newCandidatesList"
-          item-key="id"
-          group="candidates"
-          class="space-y-3 min-h-[500px]"
-          @end="() => onCandidateMoved('Ny')"
-        >
-          <template #item="{ element: candidate }">
-            <div class="bg-white rounded-lg shadow-sm border border-neutral-200 hover:shadow-md transition-shadow group">
-              <router-link
-                :to="`/candidate/${candidate.id}`"
-                class="block p-4"
-              >
-                <h3 class="font-medium text-neutral-900 mb-2 group-hover:text-violet-600">{{ candidate.name }}</h3>
-                <div class="space-y-2 text-sm">
-                  <p class="text-neutral-600">
-                    <span class="font-medium">Job:</span> {{ getJobTitle(candidate.job_id) }}
-                  </p>
-                </div>
-                <p class="text-xs text-violet-600 font-medium mt-3">Click for more info →</p>
-              </router-link>
-            </div>
-          </template>
-        </draggable>
-      </div>
+      <KanbanColumn
+        title="New"
+        :candidates="newCandidatesList"
+        :show-company="false"
+        :get-job-title="getJobTitle"
+        :get-company-name="() => ''"
+        @update:candidates="newCandidatesList = $event"
+        @candidate-moved="onCandidateMoved('Ny')"
+      />
 
-      <!-- Intervju column -->
-      <div class="bg-neutral-100 rounded-lg p-4 h-full">
-        <div class="mb-4 pb-3 border-b border-neutral-300">
-          <h2 class="text-xl font-bold text-gray-900">Interview</h2>
-          <p class="text-sm text-neutral-600">{{ interviewCandidatesList.length }} candidates</p>
-        </div>
-        <draggable
-          v-model="interviewCandidatesList"
-          item-key="id"
-          group="candidates"
-          class="space-y-3 min-h-[500px]"
-          @end="() => onCandidateMoved('Intervju')"
-        >
-          <template #item="{ element: candidate }">
-            <div class="bg-white rounded-lg shadow-sm border border-neutral-200 hover:shadow-md transition-shadow group">
-              <router-link
-                :to="`/candidate/${candidate.id}`"
-                class="block p-4"
-              >
-                <h3 class="font-medium text-neutral-900 mb-2 group-hover:text-violet-600">{{ candidate.name }}</h3>
-                <div class="space-y-2 text-sm">
-                  <p class="text-neutral-600">
-                    <span class="font-medium">Job:</span> {{ getJobTitle(candidate.job_id) }}
-                  </p>
-                </div>
-                <p class="text-xs text-violet-600 font-medium mt-3">Click for more info →</p>
-              </router-link>
-            </div>
-          </template>
-        </draggable>
-      </div>
+      <KanbanColumn
+        title="Interview"
+        :candidates="interviewCandidatesList"
+        :show-company="false"
+        :get-job-title="getJobTitle"
+        :get-company-name="() => ''"
+        @update:candidates="interviewCandidatesList = $event"
+        @candidate-moved="onCandidateMoved('Intervju')"
+      />
 
-      <!-- Anställd column -->
-      <div class="bg-neutral-100 rounded-lg p-4 h-full">
-        <div class="mb-4 pb-3 border-b border-neutral-300">
-          <h2 class="text-xl font-bold text-gray-900">Hired</h2>
-          <p class="text-sm text-neutral-600">{{ hiredCandidatesList.length }} candidates</p>
-        </div>
-        <draggable
-          v-model="hiredCandidatesList"
-          item-key="id"
-          group="candidates"
-          class="space-y-3 min-h-[500px]"
-          @end="() => onCandidateMoved('Anställd')"
-        >
-          <template #item="{ element: candidate }">
-            <div class="bg-white rounded-lg shadow-sm border border-neutral-200 hover:shadow-md transition-shadow group">
-              <router-link
-                :to="`/candidate/${candidate.id}`"
-                class="block p-4"
-              >
-                <h3 class="font-medium text-neutral-900 mb-2 group-hover:text-violet-600">{{ candidate.name }}</h3>
-                <div class="space-y-2 text-sm">
-                  <p class="text-neutral-600">
-                    <span class="font-medium">Job:</span> {{ getJobTitle(candidate.job_id) }}
-                  </p>
-                </div>
-                <p class="text-xs text-violet-600 font-medium mt-3">Click for more info →</p>
-              </router-link>
-            </div>
-          </template>
-        </draggable>
-      </div>
+      <KanbanColumn
+        title="Hired"
+        :candidates="hiredCandidatesList"
+        :show-company="false"
+        :get-job-title="getJobTitle"
+        :get-company-name="() => ''"
+        @update:candidates="hiredCandidatesList = $event"
+        @candidate-moved="onCandidateMoved('Anställd')"
+      />
     </div>
   </div>
   <div v-else class="flex justify-center items-center h-64">
@@ -144,8 +54,9 @@
 
 <script setup>
 import { ref, onMounted, watch } from 'vue'
-import draggable from 'vuedraggable'
 import { supabase } from '../lib/supabaseClient'
+import FilterBar from '../components/FilterBar.vue'
+import KanbanColumn from '../components/KanbanColumn.vue'
 
 const jobs = ref([])
 const allCandidates = ref([])

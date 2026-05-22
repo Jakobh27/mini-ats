@@ -11,162 +11,89 @@
       <div class="bg-white rounded-lg shadow-sm border border-neutral-200 p-8">
         <form @submit.prevent="handleAddCandidate" class="space-y-6">
           <!-- Company selector (only for admins) -->
-          <div v-if="isAdmin">
-            <label for="companyId" class="block text-sm font-medium text-neutral-900 mb-2">
-              Company
-            </label>
-            <select
-              id="companyId"
-              v-model="selectedCompanyId"
-              required
-              class="w-full px-4 py-2 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-transparent bg-white"
-              @change="handleCompanyChange"
-            >
-              <option value="" disabled>Select a company</option>
-              <option v-for="company in companies" :key="company.id" :value="company.id">
-                {{ company.company_name }}
-              </option>
-            </select>
-
-            <p v-if="companies.length === 0" class="text-amber-600 text-sm mt-2">
-              ⚠️ No companies found. Create at least one customer account first.
-            </p>
-          </div>
+          <FormSelect
+            v-if="isAdmin"
+            id="companyId"
+            label="Company"
+            :model-value="selectedCompanyId"
+            placeholder="Select a company"
+            :options="companies.map(c => ({ id: c.id, label: c.company_name }))"
+            required
+            :warning-text="companies.length === 0 ? 'No companies found. Create at least one customer account first.' : ''"
+            :show-warning="companies.length === 0"
+            @update:model-value="(value) => { selectedCompanyId = value; handleCompanyChange() }"
+          />
 
           <!-- Name field -->
-          <div>
-            <label for="name" class="block text-sm font-medium text-neutral-900 mb-2">
-              Name
-            </label>
-            <input
-              id="name"
-              v-model="name"
-              type="text"
-              required
-              class="w-full px-4 py-2 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-transparent"
-              placeholder="e.g., John Doe"
-            />
-          </div>
+          <FormInput
+            id="name"
+            label="Name"
+            v-model="name"
+            type="text"
+            placeholder="e.g., John Doe"
+            required
+          />
 
           <!-- Email field -->
-          <div>
-            <label for="email" class="block text-sm font-medium text-neutral-900 mb-2">
-              Email
-            </label>
-            <input
-              id="email"
-              v-model="email"
-              type="email"
-              required
-              class="w-full px-4 py-2 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-transparent"
-              placeholder="john@example.com"
-            />
-          </div>
+          <FormInput
+            id="email"
+            label="Email"
+            v-model="email"
+            type="email"
+            placeholder="john@example.com"
+            required
+          />
 
           <!-- Phone field -->
-          <div>
-            <label for="phone" class="block text-sm font-medium text-neutral-900 mb-2">
-              Phone
-            </label>
-            <input
-              id="phone"
-              v-model="phone"
-              type="tel"
-              required
-              class="w-full px-4 py-2 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-transparent"
-              placeholder="+46701234567"
-            />
-          </div>
+          <FormInput
+            id="phone"
+            label="Phone"
+            v-model="phone"
+            type="tel"
+            placeholder="+46701234567"
+            required
+          />
 
           <!-- LinkedIn URL field -->
-          <div>
-            <label for="linkedinUrl" class="block text-sm font-medium text-neutral-900 mb-2">
-              LinkedIn URL
-            </label>
-            <input
-              id="linkedinUrl"
-              v-model="linkedinUrl"
-              type="url"
-              required
-              class="w-full px-4 py-2 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-transparent"
-              placeholder="https://linkedin.com/in/johndoe"
-            />
-          </div>
+          <FormInput
+            id="linkedinUrl"
+            label="LinkedIn URL"
+            v-model="linkedinUrl"
+            type="url"
+            placeholder="https://linkedin.com/in/johndoe"
+            required
+          />
 
           <!-- Job dropdown -->
-          <div>
-            <label for="jobId" class="block text-sm font-medium text-neutral-900 mb-2">
-              Job
-            </label>
-            <select
-              id="jobId"
-              v-model="jobId"
-              required
-              class="w-full px-4 py-2 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-transparent bg-white"
-            >
-              <option value="" disabled>Select a job</option>
-              <option v-for="job in availableJobs" :key="job.id" :value="job.id">
-                {{ job.title }}
-              </option>
-            </select>
+          <FormSelect
+            id="jobId"
+            label="Job"
+            :model-value="jobId"
+            placeholder="Select a job"
+            :options="availableJobs.map(j => ({ id: j.id, label: j.title }))"
+            required
+            :warning-text="availableJobs.length === 0 && selectedCompanyId ? 'This company has no jobs yet.' + (isAdmin ? ' Go to the jobs page to create one.' : '') : ''"
+            :show-warning="availableJobs.length === 0 && selectedCompanyId"
+            :helper-text="isAdmin && !selectedCompanyId ? 'Select a company first to see available jobs.' : (!isAdmin && availableJobs.length === 0 ? 'Create a job first.' : '')"
+            @update:model-value="(value) => { jobId = value }"
+          />
 
-            <!-- Warning if no jobs available -->
-            <p v-if="availableJobs.length === 0 && selectedCompanyId" class="text-amber-600 text-sm mt-2">
-              ⚠️ This company has no jobs yet.
-              <span v-if="isAdmin"> Go to the jobs page to create one.</span>
-            </p>
-
-            <p v-if="isAdmin && !selectedCompanyId" class="text-neutral-500 text-sm mt-2">
-              Select a company first to see available jobs.
-            </p>
-
-            <p v-if="!isAdmin && availableJobs.length === 0" class="text-amber-600 text-sm mt-2">
-              ⚠️ You don't have any jobs yet.
-              <router-link to="/create-job" class="underline">Create a job first.</router-link>
-            </p>
-          </div>
-
-          <!-- CV file upload -->
-          <div>
-            <label for="cvFile" class="block text-sm font-medium text-neutral-900 mb-2">
-              Upload CV (PDF)
-            </label>
-            <div class="relative">
-              <input
-                id="cvFile"
-                ref="fileInput"
-                type="file"
-                accept=".pdf"
-                class="w-full px-4 py-2 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-transparent"
-                @change="handleFileChange"
-              />
-              <p v-if="selectedFile" class="text-sm text-green-600 mt-2">
-                ✓ {{ selectedFile.name }} selected ({{ formatFileSize(selectedFile.size) }})
-              </p>
-            </div>
-            <p class="text-xs text-neutral-500 mt-1">Max 10MB PDF file</p>
-          </div>
-
-          <!-- Upload progress -->
-          <div v-if="uploadProgress > 0 && uploadProgress < 100" class="bg-blue-50 border border-blue-200 rounded-lg p-3">
-            <p class="text-blue-700 text-sm mb-2">Uploading CV...</p>
-            <div class="w-full bg-blue-200 rounded-full h-2">
-              <div
-                class="bg-blue-600 h-2 rounded-full transition-all"
-                :style="{ width: uploadProgress + '%' }"
-              ></div>
-            </div>
-          </div>
+          <!-- CV Upload Component -->
+          <CVUploadField
+            ref="cvUploadComponent"
+            label="Upload CV (PDF)"
+            :max-size-m-b="10"
+            help-text="Max 10MB PDF file"
+            @file-selected="handleCVFileSelected"
+          />
 
           <!-- Success message -->
           <div v-if="successMessage" class="bg-green-50 border border-green-200 rounded-lg p-3">
             <p class="text-green-700 text-sm">{{ successMessage }}</p>
           </div>
 
-          <!-- Error message -->
-          <div v-if="error" class="bg-red-50 border border-red-200 rounded-lg p-3">
-            <p class="text-red-700 text-sm">{{ error }}</p>
-          </div>
+          <!-- Error message component -->
+          <ErrorAlert :message="error" />
 
           <!-- Submit button -->
           <button
@@ -187,6 +114,10 @@ import { ref, onMounted, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { supabase } from '../lib/supabaseClient'
 import { useUserContext } from '../composables/useUserContext'
+import FormInput from '../components/FormInput.vue'
+import FormSelect from '../components/FormSelect.vue'
+import CVUploadField from '../components/CVUploadField.vue'
+import ErrorAlert from '../components/ErrorAlert.vue'
 
 const router = useRouter()
 const { userId, isAdmin, loading: isLoadingContext } = useUserContext()
@@ -203,8 +134,7 @@ const availableJobsList = ref([])
 const error = ref('')
 const successMessage = ref('')
 const isLoading = ref(false)
-const fileInput = ref(null)
-const selectedFile = ref(null)
+const cvUploadComponent = ref(null)
 const uploadProgress = ref(0)
 
 // Computed property to show available jobs based on selected company
@@ -281,41 +211,9 @@ const handleCompanyChange = () => {
   jobId.value = ''
 }
 
-const formatFileSize = (bytes) => {
-  if (bytes === 0) return '0 Bytes'
-  const k = 1024
-  const sizes = ['Bytes', 'KB', 'MB']
-  const i = Math.floor(Math.log(bytes) / Math.log(k))
-  return Math.round(bytes / Math.pow(k, i) * 100) / 100 + ' ' + sizes[i]
-}
-
-const handleFileChange = (event) => {
-  const file = event.target.files?.[0]
-
-  if (!file) {
-    selectedFile.value = null
-    return
-  }
-
-  // Validate file type
-  if (file.type !== 'application/pdf') {
-    error.value = 'Only PDF files are allowed'
-    selectedFile.value = null
-    fileInput.value.value = ''
-    return
-  }
-
-  // Validate file size (10MB max)
-  const maxSize = 10 * 1024 * 1024
-  if (file.size > maxSize) {
-    error.value = `File size must be less than 10MB (current: ${formatFileSize(file.size)})`
-    selectedFile.value = null
-    fileInput.value.value = ''
-    return
-  }
-
-  error.value = ''
-  selectedFile.value = file
+const handleCVFileSelected = (event) => {
+  // This is called when file is selected in CVUploadField component
+  // The component handles validation internally
 }
 
 const uploadCVToStorage = async (file, customerId) => {
@@ -358,6 +256,9 @@ const handleAddCandidate = async () => {
   uploadProgress.value = 0
 
   try {
+    // Get selected file from component
+    const selectedFile = cvUploadComponent.value?.getSelectedFile()
+
     // Determine which customer owns this candidate
     let candidateCustomerId = userId.value
 
@@ -382,9 +283,9 @@ const handleAddCandidate = async () => {
     let resumeUrl = null
 
     // Upload CV if provided
-    if (selectedFile.value) {
+    if (selectedFile) {
       try {
-        resumeUrl = await uploadCVToStorage(selectedFile.value, candidateCustomerId)
+        resumeUrl = await uploadCVToStorage(selectedFile, candidateCustomerId)
       } catch (uploadErr) {
         error.value = uploadErr.message
         isLoading.value = false
@@ -424,8 +325,7 @@ const handleAddCandidate = async () => {
     linkedinUrl.value = ''
     jobId.value = ''
     selectedCompanyId.value = ''
-    selectedFile.value = null
-    if (fileInput.value) fileInput.value.value = ''
+    cvUploadComponent.value?.clearFile()
     isLoading.value = false
     uploadProgress.value = 0
 

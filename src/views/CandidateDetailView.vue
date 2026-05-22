@@ -120,82 +120,27 @@
         <p v-else class="text-neutral-600 text-sm">No CV uploaded yet</p>
       </div>
 
-      <!-- Stage management -->
+      <!-- Stage management component -->
       <div class="bg-white rounded-lg shadow-sm border border-neutral-200 p-8">
-        <h2 class="text-lg font-bold text-neutral-900 mb-4">Change Stage</h2>
-        <div class="flex gap-2 flex-wrap">
-          <button
-            @click="updateStage('Ny')"
-            :class="[
-              'px-4 py-2 rounded-lg font-medium transition-colors',
-              candidate.stage === 'Ny'
-                ? 'bg-blue-600 text-white'
-                : 'border border-neutral-300 text-neutral-900 hover:bg-neutral-50'
-            ]"
-          >
-            New
-          </button>
-          <button
-            @click="updateStage('Intervju')"
-            :class="[
-              'px-4 py-2 rounded-lg font-medium transition-colors',
-              candidate.stage === 'Intervju'
-                ? 'bg-amber-600 text-white'
-                : 'border border-neutral-300 text-neutral-900 hover:bg-neutral-50'
-            ]"
-          >
-            Interview
-          </button>
-          <button
-            @click="updateStage('Anställd')"
-            :class="[
-              'px-4 py-2 rounded-lg font-medium transition-colors',
-              candidate.stage === 'Anställd'
-                ? 'bg-green-600 text-white'
-                : 'border border-neutral-300 text-neutral-900 hover:bg-neutral-50'
-            ]"
-          >
-            Hired
-          </button>
-        </div>
-        <p v-if="stageUpdateMessage" class="text-green-600 text-sm mt-2">
-          {{ stageUpdateMessage }}
-        </p>
+        <StageSelector
+          :current-stage="candidate.stage"
+          title="Change Stage"
+          :success-message="stageUpdateMessage"
+          @stage-selected="updateStage"
+        />
       </div>
     </div>
 
-    <!-- Delete confirmation modal -->
-    <div v-if="showDeleteConfirmation" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div class="bg-white rounded-lg shadow-lg max-w-md w-full mx-4">
-        <div class="p-6">
-          <h2 class="text-xl font-bold text-neutral-900 mb-2">Delete candidate?</h2>
-          <p class="text-neutral-600 mb-6">
-            Are you sure you want to delete <span class="font-medium">{{ candidate.name }}</span>? This action cannot be undone.
-          </p>
-
-          <div class="flex gap-3">
-            <button
-              @click="confirmDelete"
-              :disabled="isDeleting"
-              class="flex-1 px-4 py-2 bg-red-600 hover:bg-red-700 disabled:bg-red-400 text-white font-medium rounded-lg transition-colors"
-            >
-              {{ isDeleting ? 'Deleting...' : 'Delete' }}
-            </button>
-            <button
-              @click="closeDeleteConfirmation"
-              :disabled="isDeleting"
-              class="flex-1 px-4 py-2 border border-neutral-300 text-neutral-900 font-medium rounded-lg hover:bg-neutral-50 disabled:opacity-50 transition-colors"
-            >
-              Cancel
-            </button>
-          </div>
-
-          <div v-if="deleteError" class="bg-red-50 border border-red-200 rounded-lg p-3 mt-4">
-            <p class="text-red-700 text-sm">{{ deleteError }}</p>
-          </div>
-        </div>
-      </div>
-    </div>
+    <!-- Delete confirmation modal component -->
+    <DeleteConfirmationModal
+      :is-open="showDeleteConfirmation"
+      title="Delete candidate?"
+      :message="`Are you sure you want to delete ${candidate?.name}? This action cannot be undone.`"
+      :is-loading="isDeleting"
+      :error="deleteError"
+      @confirm="confirmDelete"
+      @cancel="closeDeleteConfirmation"
+    />
   </div>
 </template>
 
@@ -204,6 +149,8 @@ import { ref, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { supabase } from '../lib/supabaseClient'
 import { useUserContext } from '../composables/useUserContext'
+import StageSelector from '../components/StageSelector.vue'
+import DeleteConfirmationModal from '../components/DeleteConfirmationModal.vue'
 
 const route = useRoute()
 const router = useRouter()
