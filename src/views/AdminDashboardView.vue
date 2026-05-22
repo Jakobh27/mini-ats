@@ -99,15 +99,17 @@ const deleteSuccess = ref('')
 
 onMounted(async () => {
   try {
+    console.log('🚀 AdminDashboardView loading...')
     // Get current user
     const { data: userData, error: userError } = await supabase.auth.getUser()
     if (userError || !userData.user) {
-      console.error('Could not retrieve user')
+      console.error('❌ Could not retrieve user')
       isLoading.value = false
       return
     }
 
     userId.value = userData.user.id
+    console.log('✅ User ID:', userId.value)
 
     // Load all companies
     const { data: companiesData, error: companiesError } = await supabase
@@ -117,6 +119,7 @@ onMounted(async () => {
 
     if (companiesError) throw companiesError
     companies.value = companiesData || []
+    console.log('✅ Companies loaded:', companies.value.length)
 
     // Build jobs query - load all jobs for admin
     const { data: jobsData, error: jobsError } = await supabase
@@ -125,6 +128,7 @@ onMounted(async () => {
 
     if (jobsError) throw jobsError
     jobs.value = jobsData || []
+    console.log('✅ Jobs loaded:', jobs.value.length)
 
     // Build candidates query - load all candidates for admin
     const { data: candidatesData, error: candidatesError } = await supabase
@@ -133,9 +137,11 @@ onMounted(async () => {
 
     if (candidatesError) throw candidatesError
     allCandidates.value = candidatesData || []
+    console.log('✅ Candidates loaded:', allCandidates.value.length)
 
     // Initial distribution
     filterAndSortCandidates()
+    console.log('✅ Filtered candidates - New:', newCandidatesList.value.length, 'Interview:', interviewCandidatesList.value.length, 'Hired:', hiredCandidatesList.value.length)
 
     // Subscribe to real-time changes
     const subscription = supabase

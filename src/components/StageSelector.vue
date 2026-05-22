@@ -23,7 +23,7 @@
 </template>
 
 <script setup>
-defineProps({
+const props = defineProps({
   currentStage: {
     type: String,
     required: true
@@ -49,6 +49,6 @@ defineProps({
 defineEmits(['stage-selected'])
 
 const isActive = (stage) => {
-  return stage === defineProps().currentStage
+  return stage === props.currentStage
 }
 </script>

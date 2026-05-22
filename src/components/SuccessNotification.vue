@@ -18,7 +18,7 @@
 </template>
 
 <script setup>
-import { ref, watch } from 'vue'
+import { ref, watch, computed } from 'vue'
 
 const props = defineProps({
   message: {
@@ -38,12 +38,14 @@ const props = defineProps({
 
 const isVisible = ref(false)
 
-const positionClass = {
+const positionClassMap = {
   'top-right': 'top-4 right-4 bg-green-50 border border-green-200',
   'bottom-right': 'bottom-4 right-4 bg-green-50 border border-green-200',
   'bottom-left': 'bottom-4 left-4 bg-green-50 border border-green-200',
   'top-left': 'top-4 left-4 bg-green-50 border border-green-200'
-}[props.position]
+}
+
+const positionClass = computed(() => positionClassMap[props.position] || positionClassMap['bottom-right'])
 
 watch(() => props.message, (newMessage) => {
   if (newMessage) {
