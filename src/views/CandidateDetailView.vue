@@ -41,7 +41,7 @@
                 }
               ]"
             >
-              {{ candidate.stage }}
+              {{ getStageLabel(candidate.stage) }}
             </span>
           </div>
         </div>
@@ -145,7 +145,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { supabase } from '../lib/supabaseClient'
 import { useUserContext } from '../composables/useUserContext'
@@ -154,7 +154,7 @@ import DeleteConfirmationModal from '../components/DeleteConfirmationModal.vue'
 
 const route = useRoute()
 const router = useRouter()
-const { userId, isAdmin } = useUserContext()
+const { userId, isAdmin, userRole, companyName: userCompanyNameRef } = useUserContext()
 const candidate = ref(null)
 const loading = ref(true)
 const stageUpdateMessage = ref('')
@@ -163,6 +163,19 @@ const isDeleting = ref(false)
 const deleteError = ref('')
 const jobTitle = ref('Unknown job')
 const companyName = ref('Unknown company')
+
+const userCompanyName = computed(() => userCompanyNameRef.value || 'Loading...')
+const userRoleLabel = computed(() => userRole.value === 'admin' ? '(Admin)' : '(Customer)')
+
+const stageLabels = {
+  'Ny': 'New',
+  'Intervju': 'Interview',
+  'Anställd': 'Hired'
+}
+
+const getStageLabel = (stage) => {
+  return stageLabels[stage] || stage
+}
 
 onMounted(async () => {
   try {

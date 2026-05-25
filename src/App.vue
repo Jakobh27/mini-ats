@@ -37,6 +37,14 @@
             >
               Admin Panel
             </router-link>
+
+            <!-- User info badge -->
+            <div class="flex items-center gap-2 pl-6 border-l border-neutral-200">
+              <div class="text-right">
+                <p class="text-sm font-medium text-neutral-900">{{ companyName }}</p>
+                <p class="text-xs text-neutral-500">{{ userRoleLabel }}</p>
+              </div>
+            </div>
             
             <!-- Logout button -->
             <button
@@ -67,13 +75,19 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { supabase } from './lib/supabaseClient'
 
 const router = useRouter()
 const isLoggedIn = ref(false)
 const isAdmin = ref(false)
+const companyName = ref(null)
+const userRole = ref(null)
+
+const userRoleLabel = computed(() => {
+  return userRole.value === 'admin' ? 'Admin' : 'Customer'
+})
 
 onMounted(() => {
   // Check initial auth state
@@ -106,31 +120,41 @@ const checkAdminRole = async () => {
     
     if (error || !data.user) {
       isAdmin.value = false
+      companyName.value = null
+      userRole.value = null
       return
     }
 
     const { data: profile, error: profileError } = await supabase
       .from('profiles')
-      .select('role')
+      .select('role, company_name')
       .eq('id', data.user.id)
       .single()
 
     if (profileError) {
       console.error('Error fetching profile:', profileError)
       isAdmin.value = false
+      companyName.value = null
+      userRole.value = null
       return
     }
 
+    userRole.value = profile?.role
+    companyName.value = profile?.company_name
     isAdmin.value = profile?.role === 'admin'
   } catch (err) {
     console.error('Error checking admin role:', err)
     isAdmin.value = false
+    companyName.value = null
+    userRole.value = null
   }
 }
 
 const handleLogout = async () => {
   await supabase.auth.signOut()
   isAdmin.value = false
+  companyName.value = null
+  userRole.value = null
   router.push('/login')
 }
 </script>

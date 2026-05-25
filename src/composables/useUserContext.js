@@ -5,6 +5,7 @@ export function useUserContext() {
   const userId = ref(null)
   const isAdmin = ref(false)
   const userRole = ref(null)
+  const companyName = ref(null)
   const loading = ref(true)
 
   onMounted(async () => {
@@ -19,10 +20,10 @@ export function useUserContext() {
 
       userId.value = user.id
 
-      // Fetch user profile to get role
+      // Fetch user profile to get role and company_name
       const { data: profileData, error: profileError } = await supabase
         .from('profiles')
-        .select('role')
+        .select('role, company_name')
         .eq('id', user.id)
         .single()
 
@@ -33,6 +34,7 @@ export function useUserContext() {
       }
 
       userRole.value = profileData?.role
+      companyName.value = profileData?.company_name
       isAdmin.value = profileData?.role === 'admin'
     } catch (err) {
       console.error('Error in useUserContext:', err)
@@ -45,6 +47,7 @@ export function useUserContext() {
     userId,
     isAdmin,
     userRole,
+    companyName,
     loading
   }
 }
